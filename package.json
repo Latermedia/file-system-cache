@@ -1,6 +1,6 @@
 {
   "name": "file-system-cache",
-  "version": "3.0.0",
+  "version": "3.1.0-later.0",
   "description": "A super-fast, promise-based cache that reads and writes to the file-system.",
   "keywords": [
     "cache",
@@ -10,7 +10,10 @@
   "homepage": "https://github.com/philcockfield/file-system-cache",
   "repository": {
     "type": "git",
-    "url": "https://github.com/philcockfield/file-system-cache"
+    "url": "git+https://github.com/Latermedia/file-system-cache"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   },
   "license": "MIT",
   "author": {
