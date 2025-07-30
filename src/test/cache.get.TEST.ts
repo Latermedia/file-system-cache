@@ -11,10 +11,30 @@ describe('get', () => {
     expect(res).to.eql(undefined);
   });
 
-  it('gets a default value', async () => {
-    const cache = new FileSystemCache({ basePath });
-    return cache.get('foo', { myDefault: 123 }).then((result) => {
-      expect(result).to.eql({ myDefault: 123 });
+  describe('default value', () => {
+    it('static', async () => {
+      const cache = new FileSystemCache({ basePath });
+      return cache.get('foo', { myDefault: 123 }).then((result) => {
+        expect(result).to.eql({ myDefault: 123 });
+      });
+    });
+
+    it('sync function', async () => {
+      const cache = new FileSystemCache({ basePath });
+      return cache.get('foo', () => {
+        return { myDefault: 123 };
+      }).then((result) => {
+        expect(result).to.eql({ myDefault: 123 });
+      });
+    });
+
+    it('async function', async () => {  
+      const cache = new FileSystemCache({ basePath });
+      return cache.get('foo', async () => {
+        return { myDefault: 123 };
+      }).then((result) => {
+        expect(result).to.eql({ myDefault: 123 });
+      });
     });
   });
 
@@ -50,6 +70,14 @@ describe('get', () => {
     it('returns a default value synchonously', () => {
       const cache = new FileSystemCache({ basePath });
       const result = cache.getSync('my-sync-value', { myDefault: 123 });
+      expect(result).to.eql({ myDefault: 123 });
+    });
+
+    it('returns a function default value synchonously', () => {
+      const cache = new FileSystemCache({ basePath });
+      const result = cache.getSync('my-sync-value', () => {
+        return { myDefault: 123 }
+      });
       expect(result).to.eql({ myDefault: 123 });
     });
   });

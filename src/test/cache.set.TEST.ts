@@ -7,32 +7,69 @@ describe('set', () => {
   beforeEach(() => deleteTmpDir(basePath));
   afterAll(() => deleteTmpDir(basePath));
 
-  it('saves a string to the file-system', async () => {
-    const cache = new FileSystemCache({ basePath });
-    const path = cache.path('foo');
-    const value = 'my value';
-    expect(fs.existsSync(path)).to.equal(false);
+  describe('async', () => {
+    it('saves a string to the file-system', async () => {
+      const cache = new FileSystemCache({ basePath });
+      const path = cache.path('foo');
+      const value = 'my value';
+      expect(fs.existsSync(path)).to.equal(false);
 
-    const res = await cache.set('foo', value);
-    expect(res.path).to.equal(path);
-    expect(Util.readFileSync(path)).to.include('my value');
+      const res = await cache.set('foo', value);
+      expect(res.path).to.equal(path);
+      expect(Util.readFileSync(path)).to.include('my value');
+    });
+
+    it('saves an object to the file-system', async () => {
+      const cache = new FileSystemCache({ basePath });
+      const value = { text: 'hello', number: 123 };
+
+      const res = await cache.set('foo', value);
+
+      const fileText = Util.readFileSync(res.path);
+      expect(fileText).to.include('hello');
+      expect(fileText).to.include('123');
+    });
+
+    it('saves a function to the file-system', async () => {
+      const cache = new FileSystemCache({ basePath });
+      const value = () => {
+        return { text: 'hello', number: 123 };
+      };
+
+      const res = await cache.set('foo', value);
+      const fileText = Util.readFileSync(res.path);
+      expect(fileText).to.include('hello');
+      expect(fileText).to.include('123');
+    });
+
+    it('saves a async function to the file-system', async () => {
+      const cache = new FileSystemCache({ basePath });
+      const value = async() => {
+        return { text: 'hello', number: 123 };
+      };
+
+      const res = await cache.set('foo', value);
+      const fileText = Util.readFileSync(res.path);
+      expect(fileText).to.include('hello');
+      expect(fileText).to.include('123');
+    });
   });
 
-  it('saves an object to the file-system', async () => {
-    const cache = new FileSystemCache({ basePath });
-    const value = { text: 'hello', number: 123 };
+  describe('sync', () => {
+    it('setSync: saves a value synchonously', () => {
+      const cache = new FileSystemCache({ basePath });
+      const result = cache.setSync('foo', { text: 'sync' });
+      expect(result).to.equal(cache);
+      expect(cache.getSync('foo')).to.eql({ text: 'sync' });
+    });
 
-    const res = await cache.set('foo', value);
-
-    const fileText = Util.readFileSync(res.path);
-    expect(fileText).to.include('hello');
-    expect(fileText).to.include('123');
-  });
-
-  it('setSync: saves a value synchonously', () => {
-    const cache = new FileSystemCache({ basePath });
-    const result = cache.setSync('foo', { text: 'sync' });
-    expect(result).to.equal(cache);
-    expect(cache.getSync('foo')).to.eql({ text: 'sync' });
+    it('setSync: saves a function synchonously', () => {
+      const cache = new FileSystemCache({ basePath });
+      const result = cache.setSync('foo', () => {
+        return { text: 'sync' };
+      });
+      expect(result).to.equal(cache);
+      expect(cache.getSync('foo')).to.eql({ text: 'sync' });
+    });
   });
 });

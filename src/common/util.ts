@@ -1,6 +1,7 @@
 import { pathExists, readJson, removeSync } from 'fs-extra/esm';
 import * as fs from 'node:fs';
 import * as fsp from 'node:fs/promises';
+import * as fse from 'fs-extra/esm';
 import { type t } from '../common.t';
 import { R, crypto, fsPath } from './libs';
 
@@ -59,17 +60,67 @@ export const hashExists = (algorithm: t.HashAlgorithm) => {
 /**
  * Retrieve a value from the given path.
  */
-export async function getValueP(path: string, defaultValue?: any) {
-  const exists = await pathExists(path);
-  if (!exists) return defaultValue;
+export async function getValueP<T = any>(
+  path: string, 
+  defaultValue?: T | (() => T) | (() => Promise<T>)
+): Promise<T | undefined> {
   try {
-    return toGetValue(await readJson(path));
-  } catch (error: any) {
-    if (error.code === 'ENOENT') return defaultValue;
-    if (error.message === 'Cache item has expired.') {
+    const value = await storedValueP(path);
+    const valueExpired = value && isExpired(value);
+
+    if (value && !valueExpired) {
+      return toGetValue(value);
+    }
+
+    if (valueExpired) {
       removeSync(path);
+    }
+
+    if (typeof defaultValue === 'function') {
+      const result = (defaultValue as Function)();
+      return result instanceof Promise ? await result : result;
+    }
+    return defaultValue;
+  } catch (error: any) {
+    if (error.code === 'ENOENT') {
+      if (typeof defaultValue === 'function') {
+        const result = (defaultValue as Function)();
+        return result instanceof Promise ? await result : result;
+      }
       return defaultValue;
     }
+    if (error.message === 'Cache item has expired.') {
+      removeSync(path);
+      if (typeof defaultValue === 'function') {
+        const result = (defaultValue as Function)();
+        return result instanceof Promise ? await result : result;
+      }
+      return defaultValue;
+    }
+    throw new Error(`Failed to read cache value at: ${path}. ${error.message}`);
+  }
+}
+
+export async function storedValueP<T = any>(path: string): Promise<StoredValue<T> | undefined> {
+  const exists = await pathExists(path);
+  if (!exists) return undefined;
+  try {
+    return await readJson(path);
+  } catch (error: any) {
+    if (error.code === 'ENOENT') return undefined;
+
+    throw new Error(`Failed to read cache value at: ${path}. ${error.message}`);
+  }
+}
+
+export function storedValue<T = any>(path: string): StoredValue<T> | undefined {
+  const exists = fs.existsSync(path);
+  if (!exists) return undefined;
+  try {
+    return fse.readJsonSync(path);
+  } catch (error: any) {
+    if (error.code === 'ENOENT') return undefined;
+
     throw new Error(`Failed to read cache value at: ${path}. ${error.message}`);
   }
 }
@@ -77,22 +128,31 @@ export async function getValueP(path: string, defaultValue?: any) {
 /**
  * Format value structure.
  */
-export const toGetValue = (data: any) => {
+export const toGetValue = <T = any>(data: StoredValue<T>): T | undefined => {
   if (isExpired(data)) return undefined;
-  if (data.type === 'Date') return new Date(data.value);
+  if (data.type === 'Date') return new Date(data.value as string) as T;
   return data.value;
 };
+
+interface StoredValue<T = any> {
+  value: T;
+  type: ReturnType<typeof R.type>;
+  created: Date,
+  ttl: number
+}
 
 /**
  * Stringify a value into JSON.
  */
-export const toJson = (value: any, ttl: number) =>
-  JSON.stringify({ value, type: R.type(value), created: new Date(), ttl });
+export const toJson = (value: any, ttl: number) => {
+  const obj: StoredValue = { value, type: R.type(value), created: new Date(), ttl };
+  return JSON.stringify(obj);
+}
 
 /**
  * Check's a cache item to see if it has expired.
  */
-export const isExpired = (data: any) => {
+export const isExpired = (data: StoredValue) => {
   const timeElapsed = (new Date().getTime() - new Date(data.created).getTime()) / 1000;
   return timeElapsed > data.ttl && data.ttl > 0;
 };
