@@ -1,5 +1,5 @@
 {
-  "name": "file-system-cache",
+  "name": "@Latermedia/file-system-cache",
   "version": "3.1.0-later.0",
   "description": "A super-fast, promise-based cache that reads and writes to the file-system.",
   "keywords": [
