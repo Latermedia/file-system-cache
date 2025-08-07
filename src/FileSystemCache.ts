@@ -1,5 +1,4 @@
 import * as fs from 'node:fs';
-import * as fse from 'fs-extra/esm';
 import { R, Util, hashAlgorithms, type t } from './common/index';
 
 /**
@@ -68,14 +67,14 @@ export class FileSystemCache {
    * @param {string} key: The key of the cache item.
    */
   public fileExists(key: string) {
-    return fse.pathExists(this.path(key));
+    return Util.pathExists(this.path(key));
   }
 
   /**
    * Ensure that the base path exists.
    */
   public async ensureBasePath() {
-    if (!this.basePathExists) await fse.ensureDir(this.basePath);
+    if (!this.basePathExists) await Util.ensureDir(this.basePath);
     this.basePathExists = true;
   }
 
@@ -105,7 +104,7 @@ export class FileSystemCache {
     }
 
     if (valueExpired) {
-      fse.removeSync(this.path(key));
+      Util.removeSync(this.path(key));
     }
 
     if (typeof defaultValue === 'function') {
@@ -130,7 +129,7 @@ export class FileSystemCache {
     } else {
       valueToWrite = value;
     }
-    await fse.outputFile(path, Util.toJson(valueToWrite, ttl));
+    await Util.outputFile(path, Util.toJson(valueToWrite, ttl));
     return { path };
   }
 
@@ -148,7 +147,7 @@ export class FileSystemCache {
     } else {
       valueToWrite = value;
     }
-    fse.outputFileSync(this.path(key), Util.toJson(valueToWrite, ttl));
+    Util.outputFileSync(this.path(key), Util.toJson(valueToWrite, ttl));
     return this;
   }
 
@@ -210,7 +209,7 @@ export class FileSystemCache {
    * @param {string} key: The key of the cache item.
    */
   public remove(key: string) {
-    return fse.remove(this.path(key));
+    return Util.remove(this.path(key));
   }
 
   /**
@@ -218,7 +217,7 @@ export class FileSystemCache {
    */
   public async clear() {
     const paths = await Util.filePathsP(this.basePath, this.ns);
-    await Promise.all(paths.map((path) => fse.remove(path)));
+    await Promise.all(paths.map((path) => Util.remove(path)));
     console.groupEnd();
   }
 
@@ -268,7 +267,7 @@ export class FileSystemCache {
     await Promise.all(paths.map((path) => {
       const value = Util.storedValue(path);
       if (value && Util.isExpired(value)) {
-        return fse.remove(path);
+        return Util.remove(path);
       }
     }));
   }

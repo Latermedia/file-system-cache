@@ -5,8 +5,6 @@ import { Util, crypto, fsPath, type t } from '../common';
 export { afterAll, afterEach, beforeAll, beforeEach, describe, it } from 'vitest';
 export { FileSystemCache, Util, crypto, expect, fsPath, type t };
 
-import * as fse from 'fs-extra/esm';
-
 export const BasePath = {
   root: './.tmp',
   random(prefix: string = 'cache') {
@@ -18,7 +16,7 @@ export const BasePath = {
 
 export const deleteTmpDir = async (basePath?: string) => {
   const path = fsPath.resolve(basePath || BasePath.root);
-  fse.removeSync(path);
+  Util.removeSync(path);
 };
 
 export const Sleep = {

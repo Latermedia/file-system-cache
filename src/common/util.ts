@@ -1,9 +1,78 @@
-import { pathExists, readJson, removeSync } from 'fs-extra/esm';
 import * as fs from 'node:fs';
 import * as fsp from 'node:fs/promises';
-import * as fse from 'fs-extra/esm';
+import * as path from 'node:path';
 import { type t } from '../common.t';
 import { R, crypto, fsPath } from './libs';
+
+// Replace fs-extra functions with native Node.js equivalents
+export const pathExists = async (filePath: string): Promise<boolean> => {
+  try {
+    await fsp.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+export const readJson = async (filePath: string): Promise<any> => {
+  const content = await fsp.readFile(filePath, 'utf8');
+  return JSON.parse(content);
+};
+
+export const readJsonSync = (filePath: string): any => {
+  const content = fs.readFileSync(filePath, 'utf8');
+  return JSON.parse(content);
+};
+
+export const removeSync = (filePath: string): void => {
+  if (fs.existsSync(filePath)) {
+    const stat = fs.statSync(filePath);
+    if (stat.isDirectory()) {
+      fs.rmSync(filePath, { recursive: true, force: true });
+    } else {
+      fs.unlinkSync(filePath);
+    }
+  }
+};
+
+export const remove = async (filePath: string): Promise<void> => {
+  try {
+    const stat = await fsp.stat(filePath);
+    if (stat.isDirectory()) {
+      await fsp.rm(filePath, { recursive: true, force: true });
+    } else {
+      await fsp.unlink(filePath);
+    }
+  } catch (error: any) {
+    if (error.code !== 'ENOENT') {
+      throw error;
+    }
+  }
+};
+
+export const ensureDir = async (dirPath: string): Promise<void> => {
+  try {
+    await fsp.mkdir(dirPath, { recursive: true });
+  } catch (error: any) {
+    if (error.code !== 'EEXIST') {
+      throw error;
+    }
+  }
+};
+
+export const outputFile = async (filePath: string, data: string): Promise<void> => {
+  const dir = path.dirname(filePath);
+  await ensureDir(dir);
+  await fsp.writeFile(filePath, data, 'utf8');
+};
+
+export const outputFileSync = (filePath: string, data: string): void => {
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  fs.writeFileSync(filePath, data, 'utf8');
+};
 
 export const isNothing = (value: any) => R.isNil(value) || R.isEmpty(value);
 export const isString = R.is(String);
@@ -117,7 +186,7 @@ export function storedValue<T = any>(path: string): StoredValue<T> | undefined {
   const exists = fs.existsSync(path);
   if (!exists) return undefined;
   try {
-    return fse.readJsonSync(path);
+    return readJsonSync(path);
   } catch (error: any) {
     if (error.code === 'ENOENT') return undefined;
 

@@ -9,7 +9,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 #### Changed
 #### Deprecated
 #### Removed
+- Removed `fs-extra` dependency to fix dynamic require issues in ES modules
 #### Fixed
+- Fixed "Dynamic require of 'fs' is not supported" error when using the library in ES module environments
+- Updated deprecated `fs.rmdir` calls to use `fs.rm` for better Node.js compatibility
 #### Security
 
 
